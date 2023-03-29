@@ -15,14 +15,14 @@
  *      var a = "a"; // 期望a是某一个值
  * }
  * console.log(a);
- * 
+ *
  * 2. var 在for循环标记变量共享，一般在循环中使用的i会被共享，其本质上也是由于没有块级作用域造成的
  * for(var i=0; i<3; i++) {
  *      setTimeout(function(){
  *          alert(i);
  *      }, 0);
  * }
- * 
+ *
  * 结果是弹窗三次  3
  */
 
@@ -30,22 +30,22 @@
  * 1.2 块级作用域
  * 在用 var 定义变量的时候，变量是通过闭包进行隔离的，现在用了 let, 不仅可以通过闭包隔离，还增加了一些块级作用域隔离。
  * 块级作用用一组大括号定义一个块，使用 let 定义的变量在大括号的外面是访问不到的
- * 
+ *
  * 1.2.1 实现块级作用域
- * 
+ *
  * if(true) {
  *      let name = 'zfpx';
  * }
  * console.log(name); // ReferenceError: name is not defined
- * 
+ *
  * 1.2.2 不会污染全局对象
  * if(true) {
  *      let name = 'zfpx';
  * }
  * console.log(window.name);
- * 
+ *
  * 结果 undefined
- * 
+ *
  * 1.2.3 for 循环中也可以使用 i
  * // 嵌套循环不会相互影响
  * for(let i = 0; i < 3; i++) {
@@ -54,28 +54,28 @@
  *          console.log("in", i);
  *      }
  * }
- * 
+ *
  * 结果 out 0 in 0 in 1 out 1 in 0 in 1 out 2 in 0 in 1
- * 
+ *
  * 1.2.4 重复定义会报错
  * if(true) {
  *      let a = 1;
  *      let a = 2; // Identifier 'a' has already been declared
  * }
- * 
+ *
  * 1.2.5 不存在变量的预解释
  * for(let i = 0; i < 2; i++) {
  *      console.log('inner', i);
  *      let i = 100;
  * }
- * 
+ *
  * 结果 i is not defined
- * 
+ *
  * 1.2.6 闭包的新写法
  * 以前
  * ;(function(){
  * })();
- * 
+ *
  * 现在
  * {
  * }
@@ -84,17 +84,17 @@
 /**
  * 2.常量
  * 使用 const 我们可以去声明一个常量，常量一旦赋值就不能再修改了
- * 
+ *
  * 2.1 常量不能重新赋值
  * const MY_NAME = 'zfpx';
  * MY_NAME = 'zfpx2'; // Assignment to constant variable
- * 
+ *
  * 2.2 变量值可改变
  * 注意 const 限制的是不能给变量重新赋值，而变量的值本身是可以改变的，下面的操作是可以的
  * const names = ['zfpx1'];
  * names.push('zfpx2');
  * console.log(names);
- * 
+ *
  * 2.3 不同的块级作用域可以多次定义
  * const A = "0";
  * {
@@ -110,13 +110,13 @@
 
 /**
  * 3. 解构
- * 
+ *
  * 3.1 解析数组
  * 解构意思就是分解一个东西的结构，可以用一种类似数组的方式定义N个变量，可以将一个数组中的值按照规则赋值过去。
- * 
+ *
  * var [name, age] = ['zfpx', 8];
  * console.log(name, age);
- * 
+ *
  * 3.2 嵌套赋值
  * let [x, [y], z] = [1, [2.1, 2.2]];
  * console.log(x, y, z); // 1 2.1 undefined
@@ -124,33 +124,33 @@
  * console.log(x, y, z); // 1 2.1 2.2
  * let [json, arr, num] = [{name: 'zfpx'}, [1,2],3];
  * console.log(json, arr, num); // {name: 'zfpx'} [1,2] 3
- * 
+ *
  * 3.3 省略赋值
  * let [, , x] = [1,2,3];
  * console.log(x); // 3
- * 
+ *
  * 3.4 解构对象
  * 对象也可以被解构
  * const obj = { name: 'zfpx', age: 8 };
  * // 对象里的name属性的值会交给name这个变量，age的值会交给age这个变量
  * const { name, age } = obj;
- * 
+ *
  * // 对象里的name属性的值会交给myname这个变量，age的值会交给myage这个变量
  * const { name: myname, age: myage } = obj;
  * console.log(name, age, myname, myage); // 'zfpx' 8 'zfpx' 8
- * 
+ *
  * 3.5 默认值
  * 在赋值和传参的时候可以使用默认值
- * 
+ *
  * let [a = "a", b = "b", c = new Error('C必须指定')] = [1, , 3];
  * console.log(a, b, c); // 1 'b' 3
- * 
+ *
  * function ajax(options) {
  *      var method = options.method || 'get';
  *      var data = options.data || {};
  *      // ...
  * }
- * 
+ *
  * function ajax({method = "get", data}) {
  *      console.log(arguments);
  * }
@@ -162,13 +162,13 @@
 
 /**
  * 4.字符串
- * 
+ *
  * 4.1 模版字符串
  * 模板字符串用反引号（数字1左边的那个键）包含，其中的变量用 ${} 括起来
  * var name = 'zfpx', age = 8;
  * let desc = `${name} is ${age} old!`;
  * console.log(desc);
- * 
+ *
  * // 所有模板字符串的空格和换行，都是被保留的
  * var str = `
  *      <ul>
@@ -177,19 +177,19 @@
  *      </ul>
  * `;
  * console.log(str);
- * 
+ *
  * 其中的变量会用变量的值替换掉
  * function replace(desc) {
  *      return desc.replace(/\$\{([^}]+)\}/g, function(matched, key){
  *          return eval(key);
  *      });
  * }
- * 
+ *
  * 4.2 带标签的模板字符串
  * 可以在模板字符串的前面添加一个标签，这个标签可以去处理模板字符串，标签其实就是一个函数，
  * 函数可以接收两个参数，一个是 strings ，就是模板字符串里的每个部分的字符 还有一个参数
  * 可以使用 rest 的形式 values ，这个参数里面是模板字符串里的值
- * 
+ *
  * var name = 'zfpx', age = 8;
  * function desc(strings, ...values) {
  *      console.log(strings, values);
@@ -202,26 +202,26 @@
  * - includes() 返回布尔值，表示是否找到了参数字符串
  * - startsWith() 返回布尔值，表示参数字符串是否在源字符串的头部
  * - endsWith() 返回布尔值，表示参数字符串是否在源字符串的尾部
- * 
+ *
  * var s = 'zfpx';
  * s.startsWith('z'); // true
  * s.endsWith('x'); // true
  * s.includes('p'); // true
- * 
+ *
  * 第二个参数，表示开始搜索的位置
- * 
+ *
  * var s = 'zfpx';
  * console.log(s.startsWith('p', 2)); // true
  * console.log(s.endsWith('f', 2)); // true
  * console.log(s.includes('f', 2)); // false
- * 
+ *
  * endsWith的行为与其他两个方法有所不同。它针对前n个字符，而其他两个方法针对从第n个位置直到字符串结束
  */
 
 /**
  * 4.4 repeat
  * repeat 方法返回一个新字符串，表示将原字符串重复n次。
- * 
+ *
  * 'x'.repeat(3);
  * 'x'.repeat(0);
  */
@@ -230,43 +230,43 @@
  * 5. 函数
  * 5.1 默认参数
  * 可以给定义的函数接收的参数设置默认的值，在执行这个函数的时候，如果不指定函数的参数的值，就会使用参数的这些默认的值
- * 
+ *
  * function ajax(url, method='GET', dataType='json') {
  *      console.log(url);
  *      console.log(method);
  *      console.log(dataType);
  * }
- * 
+ *
  * 5.2 展开操作符
  * 把...放在数组前面可以把一个数组进行展开，可以把一个数组直接传入一个函数而不需要使用 apply
- * 
+ *
  * // 传入参数
  * const print = function(a,b,c){
  *      console.log(a,b,c);
  * }
  * print([1,2,3]);
  * print(...[1,2,3]);
- * 
+ *
  * // 可以替代apply
  * var m1 = Math.max.apply(null, [8,9,4,1]);
  * var m2 = Math.max(...[8,9,4,1]);
- * 
+ *
  * // 可以替代concat
  * var arr1 = [1,3];
  * var arr2 = [3,5];
  * var arr3 = arr1.concat(arr2);
  * var arr4 = [...arr1, ...arr2];
  * console.log(arr3, arr4);
- * 
+ *
  * // 类数组的转数组
  * function max(a,b,c){
  *      console.log(Math.max(...arguments));
  * }
  * max(1,3,4);
- * 
+ *
  * 5.3 剩余操作符
  * 剩余操作符可以把其余的参数的值都放到一个叫 b 的数组里面
- * 
+ *
  * const rest = function(a, ...rest) {
  *      console.log(a, rest);
  * }
@@ -275,4 +275,401 @@
 
 /**
  * 5.4 解构参数
+ *
+ * const destruct = function({name, age}) {
+ *      console.log(name, age);
+ * }
+ * destruct({name: 'zfpx', age: 6});
+ */
+
+/**
+ * 5.5 函数的名字
+ * ECMAScript 6 给函数添加了一个 name 属性
+ *
+ * const desc = function descname() {};
+ * console.log(desc.name);
+ */
+
+/**
+ * 5.6 箭头函数
+ * 箭头函数简化了函数的定义方式，一般以"=>"操作符左边为输入的参数，而右边则是进行的操作以及返回的值 inputs=>output
+ *
+ * [1,2,3].forEach(val => console.log(val)););
+ *
+ * 输入参数如果多于一个要用()包起来，函数体如果有多条语句需要用{}包起来
+ *
+ * 箭头函数根本没有自己的this, 导致内部的this就是外层代码块的this。正是因为它没有this,从而避免了this指向的问题。
+ *
+ * const person = {
+ *      name: 'zfpx',
+ *      getName: function() {
+ * -        setTimeout(function(){console.log(this);}, 1000); // 在浏览器执行的话this指向window
+ * +        setTimeout(() => console.log(this), 1000); // 在浏览器执行的话this指向person
+ *      }
+ *
+ * }
+ * person.getName();
+ */
+
+/**
+ * 5.7 数组的新方法
+ *
+ * 5.7.1 from
+ * 将一个数组或者类数组变成数组，会复制一份
+ *
+ * const newArr = Array.from(oldArr);
+ *
+ * 5.7.2 Array.of
+ * of 是为了将一组数值，转换为数组
+ *
+ * console.log(Array(3), Array(3).length);
+ * console.log(Array.of(3), Array.of(3).length);
+ *
+ * 5.7.3 copyWithin
+ * Array.prototype.copyWithin(target, start = 0, end = this.length) 覆盖目标的下标 开始的下标 结束的后一个的下标
+ *
+ * [1, 2, 3, 4, 5].copyWithin(0, 1, 2);
+ *
+ * 5.7.4 find
+ * 查找对应的元素和索引
+ *
+ * const arr = [1, 2, 3, 3, 4, 5];
+ * const find = arr.find((item, index, arr) => {
+ *      return item === 3;
+ * });
+ *
+ * const findIndex = arr.findIndex((item, index, arr) => {
+ *      return item === 3;
+ * });
+ *
+ * console.log(find, findIndex);
+ *
+ * 5.7.5 fill
+ * 就是填充数组的意思 会更改原数组 Array.prototype.fill(value, start, end = this.length);
+ *
+ * const arr = [1, 2, 3, 4, 5, 6];
+ * arr.fill('a', 1, 2);
+ * console.log(arr);
+ *
+ * 5.7.5 map
+ *
+ * 5.7.6 reduce
+ *
+ * 5.7.7 filter
+ *
+ * 5.7.8 forEach
+ */
+
+/**
+ * 6. 对象
+ * 6.1 对象字面量
+ * 如果你想在对象里添加跟变量名一样的属性，并且属性的值就是变量表示的值就可以直接在对象里加上这些属性
+ *
+ * const name = 'zfpx';
+ * const age = 8;
+ * const getName = function () {
+ *      console.log(this.name);
+ * }
+ * const person = {
+ *      name,
+ *      age,
+ *      getName
+ * }
+ * person.getName();
+ *
+ * 6.2 Object.is
+ * 对比两个值是否相等
+ *
+ * console.log(Object.is(NaN, NaN));
+ *
+ * 6.3 Object.assign
+ * 把多个对象的属性复制到一个对象中，第一个参数是复制的对象，从第二个参数开始往后，都是复制的源对象
+ *
+ * const nameObj = {name: 'zfpx'};
+ * const ageObj = {age: 8};
+ * const obj = {};
+ * Object.assign(obj, nameObj, ageObj);
+ * console.log(obj);
+ *
+ * // 克隆对象
+ * function clone (obj) {
+ *      return Object.assign({}, obj);
+ * }
+ *
+ * 6.4 Object.setPrototypeOf
+ * 将一个指定的对象的原型设置为另一个对象或者null
+ *
+ * const obj1 = {name: 'zfpx1'};
+ * const obj2 = {name: 'zfpx2'};
+ * const obj = {};
+ * Object.setPrototypeOf(obj, obj1);
+ * console.log(obj.name);
+ * console.log(Object.getPrototypeOf(obj));
+ * Object.setPrototypeOf(obj, obj2);
+ * console.log(obj.name);
+ * console.log(Object.getPrototypeOf(obj));
+ *
+ * 6.5 proto
+ * 直接在对象表达式中设置 prototype
+ *
+ * const obj1 = { name: 'zfpx1' };
+ * const obj3 = {
+ *      __proto__: obj1
+ * }
+ * console.log(obj3.name);
+ * console.log(Object.getPrototypeOf(obj3));
+ *
+ * 6.6 super
+ * 通过 super 可以调用prototype上的属性或方法
+ *
+ * const person = {
+ *      eat() {
+ *          return 'milk';
+ *      }
+ * }
+ * const student = {
+ *      __proto__: person,
+ *      eat() {
+ *          return super.eat() + ' bread'
+ *      }
+ * }
+ *
+ * console.log(student.eat());
+ */
+
+/**
+ * 7. 类
+ *
+ * 7.1 class
+ * 使用 class 这个关键词定义一个类，基于这个类创建实例以后会自动执行 constructor 方法，此方法可以用来初始化
+ *
+ * class Person {
+ *      constructor(name) {
+ *          this.name = name;
+ *      }
+ *      getName() {
+ *          console.log(this.name);
+ *      }
+ * }
+ * const person = new Person('zfpx');
+ * person.getName();
+ *
+ * 7.2 get与set
+ * getter 可以用来获得属性， setter 可以去设置属性
+ *
+ * class Person {
+ *      constructor() {
+ *          this.hobbies = [];
+ *      }
+ *      set hobby(hobby) {
+ *          this.hobbies.push(hobby);
+ *      }
+ *      get hobby() {
+ *          return this.hobbies;
+ *      }
+ * }
+ * const person = new Person();
+ * person.hobby = 'basketball';
+ * person.hobby = 'football';
+ * console.log(person.hobby);
+ *
+ * 7.3 静态方法-static
+ * 在类里面添加静态的方法可以使用 static 这个关键词，静态方法就是不需要实例化类就能使用的方法
+ *
+ * class Person {
+ *      static add(a, b) {
+ *          return a + b;
+ *      }
+ * }
+ * console.log(Person.add(1,2));
+ *
+ * 7.4 继承extends
+ * 一个类可以去继承其他的类里的东西
+ *
+ * class Person {
+ *      constructor(name) {
+ *          this.name = name;
+ *      }
+ * }
+ * class Teacher extends Person {
+ *      constructor(name, age) {
+ *          super(name);
+ *          this.age = age;
+ *      }
+ * }
+ * const teacher = new Teacher('zfpx', 8);
+ * console.log(teacher.name, teacher.age);
+ */
+
+/**
+ * 8. 生成器(Generator)与迭代器(Iterator)
+ * Generator 是一个特殊的函数，执行它会返回一个 Iterator 对象。通过遍历迭代器，Generator 函数运行后会返回一个遍历器对象，而不是普通函数的返回值。
+ *
+ * 8.1 Iterators模拟
+ * 迭代器有一个next方法，每次执行的时候会返回一个对象，对象里面有两个属性，一个是 value 表示返回的值，还有就是布尔值 done, 表示是否迭代完成
+ *
+ * function buy(books) {
+ *      let i = 0;
+ *      return {
+ *          next() {
+ *              const done = i == books.length;
+ *              const value = !done ? books[i++] : undefined;
+ *              return {
+ *                  value: value,
+ *                  done: done
+ *              }
+ *          }
+ *      }
+ * }
+ * const iterators = buy(['js', 'html']);
+ * let curr;
+ * do{
+ *      curr = iterators.next();
+ *      console.log(curr);
+ * } while (!curr.done);
+ *
+ *
+ * 8.2 Generators
+ * 生成器用于创建迭代器
+ *
+ * function* buy(books) {
+ *      for(var i=0; i<books.length;i++) {
+ *          yield books[i];
+ *      }
+ * }
+ * let buying = buy(['js', 'html']);
+ * var curr;
+ * do{
+ *      curr = buying.next();
+ *      console.log(curr);
+ * } while (!curr.done);
+ */
+
+/**
+ * 9. 集合
+ *
+ * 9.1 Set
+ * 一个 Set 是一堆东西的集合，Set 有点像数组，不过跟数组不一样的是， Set里面不能有重复的内容
+ *
+ * const books = new Set();
+ * books.add('js');
+ * books.add('js'); // 添加重复元素集合的元素个数不会改变
+ * books.add('html');
+ * books.forEach(function(book){ // 循环集合
+ *    console.log(book);
+ * });
+ * console.log(books.size); // 集合中元素的个数
+ * console.log(books.has('js')); // 判断集合中是否有此元素
+ * books.delete('js'); // 从集合中删除此元素
+ * console.log(books.size);
+ * console.log(books.has('js'));
+ * books.clear(); // 清空 set
+ * console.log(books.size);
+ *
+ * 9.2 Map
+ * 可以使用 Map 来组织这种名值对的数据
+ *
+ * const books = new Map();
+ * books.set('js', {name: 'js'}); // 向map中添加元素
+ * books.set('html', {name: 'html'});
+ * console.log(books.size); // 查看集合中的元素
+ * console.log(books.get('js')); // 通过key获取值
+ * books.delete('js'); // 执照key删除元素
+ * console.log(books.has('js')); // 判断map中有没有key
+ * books.forEach((value, key) => { // forEach 可以迭代map
+ *      console.log(key + ' = ' + value);
+ * });
+ * books.clear(); // 清空map
+ */
+
+/**
+ * 10. 模块
+ *
+ * 10.1 在浏览器中使用模块需要借助 导出
+ *
+ * export var name = 'zfpx';
+ * export var age = 8;
+ *
+ * 导入
+ * // import {name, age} from './school.js';
+ * import * as school from './school.js';
+ * console.log(school.name, school.age);
+ * 
+ * 在页面中引用
+ * 
+ * <script src="https://google.github.io/traceur-compiler/bin/traceur.js"></script>
+   <script src="https://google.github.io/traceur-compiler/bin/BrowserSystem.js"></script>
+   <script src="https://google.github.io/traceur-compiler/src/bootstrap.js"></script>
+   <script type="module" src="index.js"></script>
+ * 
+ * 10.2 重命名
+ * 导出时重命名
+ * 
+ * function say() {
+ *      console.log('say');
+ * }
+ * export { say as say2 };
+ * 
+ * 导入时重命名
+ * import { say2 as say3 } from './school.js';
+ * 
+ * 10.3 默认导出
+ * 每个模块都可以有一个默认要导出的东西 导出
+ * 
+ * export default function say() {
+ *      console.log('say');
+ * }
+ * 
+ * 导入
+ * 
+ * import say from './school.js';
+ */
+
+/**
+ * 11 深度克隆
+ *
+ * var parent = {
+ *      age: 5,
+ *      hobby: [1, 2, 3],
+ *      home: { city: '北京' },
+ * }
+ *
+ * var child = extendDeep(parent);
+ * child.age = 6;
+ * child.hobby.push('4');
+ * child.home.city = '广东';
+ * console.log('child', child);
+ * console.log('parent', parent);
+ * function extend(parent) {
+ *      let child;
+ *      if(Object.prototype.toString.call(parent) == '[object Object]') {
+ *          child = {};
+ *          for(let key in parent) {
+ *              child[key] = extend(parent[key]);
+ *          }
+ *      } else if(Object.prototype.toString.call(parent) == '[object Array]'){
+ *          child = parent.map(item => extend(item));
+ *      } else {
+ *          return parent;
+ *      }
+ *      return child;
+ * }
+ *
+ * function extendDeep(parent, child) {
+ *      child = child || {};
+ *      for(var key in parent) {
+ *          if(typeof parent[key] === "object") {
+ *              child[key] = (Object.prototype.toString.call(parent[key]) === "[object Array]") ? []: {};
+ *              extendDeep(parent[key], child[key]);
+ *          } else {
+ *              child[key] = parent[key];
+ *          }
+ *      }
+ *      return child;
+ * }
+ */
+
+/**
+ * 作业
+ * 1. 自己实现一个跟原来默认功能一样的标签字符串方法
  */
