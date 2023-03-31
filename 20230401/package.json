@@ -1,0 +1,12 @@
+{
+  "name": "20230401",
+  "version": "1.0.0",
+  "description": "在 Node.js 中，使用`console`对象代表控制台（在操作系统中表现为一个操作系统指定的字符界面，比如 Window 中命令提示窗口）。",
+  "main": "bell.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
