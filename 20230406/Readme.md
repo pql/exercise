@@ -254,7 +254,7 @@ process.nextTick(() => stream.uncork());
 ```js
 const fs = require("fs");
 const ReadStream = require("./ReadStream");
-const rs = ReadStream("./1.txt", {
+const rs = new ReadStream("./1.txt", {
   flags: "r",
   encoding: "utf8",
   start: 3,
