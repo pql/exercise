@@ -1,13 +1,16 @@
-const fs = require("fs");
-const rs = fs.createReadStream("./1.txt");
-const ws = fs.createWriteStream("./2.txt");
-rs.on("data", function (data) {
-  const flag = ws.write(data);
-  if (!flag) rs.pause();
+const fs = require('fs');
+const ReadStream = require('./ReadStream');
+const rs = new ReadStream('./1.txt', {
+    flags: 'r',
+    encoding: 'utf8',
+    highWaterMark: 3
 });
-ws.on("drain", function () {
-  rs.resume();
+
+const FileWriteStream = require('./FileWriteStream')
+const ws = new FileWriteStream('./2.txt', {
+    flags: 'w',
+    encoding: 'utf8',
+    highWaterMark: 3
 });
-rs.on("end", function () {
-  ws.end();
-});
+
+rs.pipe(ws);
