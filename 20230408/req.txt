@@ -1,0 +1,5 @@
+Host: www.baidu.com
+User-Agent: curl/7.53.0
+Accept: */*
+
+name=zfpx&age=9
