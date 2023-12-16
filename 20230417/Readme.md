@@ -380,4 +380,257 @@ socket.setKeepAlive([enaable], [initialDelay]);
  * 4. 客户端连接和退出后都要通知大家
  * 5. 显示当前的在线人数
  */
+
+const net = require("net");
+const util = require("util");
+const clients = {};
+const server = net
+  .createServer(function (socket) {
+    server.getConnections(function (err, count) {
+      socket.write(
+        `welcome, there is ${count} users now, please input your username\r\n`
+      );
+      let nickname;
+      socket.setEncoding("utf8");
+      socket.on("data", function (data) {
+        data = data.replace(/\r\n/, "");
+        if (data == "byebye") {
+          socket.end();
+        } else {
+          if (nickname) {
+            broadcast(nickname, `${nickname}:${data}`);
+          } else {
+            nickname = data;
+            clients[nickname] = socket;
+            broadcast(nickname, `welcome ${nickname} joined us !`);
+          }
+        }
+      });
+      socket.on("close", function () {
+        socket.destroy();
+      });
+    });
+  })
+  .listen(8088);
+
+function broadcast(nickname, msg) {
+  for (let key in clients) {
+    if (key != nickname) {
+      clients[key].write(msg + "\r\n");
+      clients[nickname].destroy();
+      delete clients[nickname];
+    }
+  }
+}
 ```
+
+### 1.4 类方法
+
+- isIP 判断字符串是否是 IP
+- isIPv4 判断字符串是否是 IPv4 地址
+- isIPv6 判断字符串是否是 IPv6 地址
+
+## 2. UDP
+
+### 2.1 创建 socket
+
+```js
+const socket = dgram.createSocket(type, [callback]);
+socket.on("message", function (msg, rinfo) {});
+```
+
+- type 必须输入，指定是 udp4 还是 udp6
+- callback 从该接口接收到数据时调用的回调函数
+  - msg 接收到的数据
+  - rinfo 信息对象
+    - address 发送者的地址
+    - family ipv4 还是 ipv6
+    - port 发送者的 socket 端口号
+    - size 发送者所发送的数据字节数
+
+```js
+socket.bind(port, [address], [callback]);
+socket.on("listening", callback);
+```
+
+- port 绑定的端口号
+- address 监听的地址
+- callback 监听成功后的回调函数
+
+### 2.2 向外发生数据
+
+如果发送数据前还没有绑定过地址和端口号，操作系统将为其分配一个随机端口并可以接收任何地址的数据
+
+```js
+socket.send(buf, offset, length, port, address, [callback]);
+```
+
+- buffer 代表缓存区
+- offset 从缓存区第几个字节开始发
+- length 要发送的字节数
+- port 对方的端口号
+- address 接收数据的 socket 地址
+- callback 指定当数据发送完毕时所需要的回调函数
+  - err 错误对象
+  - bytes 实际发送的字节数
+
+### 2.3 address
+
+获取此 socket 相关的地址信息
+
+```js
+const address = socket.address();
+```
+
+- port
+- address
+- family
+
+### 2.4 UDP 服务器
+
+```js
+const dgram = require("dgram");
+const socket = dgram.createSocket("udp4");
+socket.on("message", function (msg, rinfo) {
+  console.log(msg.toString());
+  console.log(rinfo);
+  socket.send(msg, 0, msg.length, rinfo.port, rinfo.address);
+});
+socket.bind(41234, "localhost");
+```
+
+### 2.5 UDP 客户端
+
+```js
+const dgram = require("dgram");
+const socket = dgram.createSocket("udp4");
+socket.on("message", function (msg, rinfo) {
+  console.log(msg.toString());
+  console.log(rinfo);
+});
+socket.setTTL(128);
+socket.send(
+  new Buffer("珠峰培训"),
+  0,
+  6,
+  41234,
+  "localhost",
+  function (err, bytes) {
+    console.log("发送了个%d字节", bytes);
+  }
+);
+socket.on("error", function (err) {
+  console.error(err);
+});
+```
+
+### 2.6 广播
+
+创建一个 UDP 服务器并通过该服务器进行数据的广播
+
+#### 2.6.1 服务器
+
+```js
+const dgram = require("dgram");
+const server = dgram.createSocket("udp4");
+server.on("message", function (msg) {
+  const buf = new Buffer("已经接收客户端发送的数据" + msg);
+  server.setBroadcast(true);
+  server.send(buf, 0, buf.length, 41235, "192.168.1.255");
+});
+server.bind(41234, "192.168.1.100");
+```
+
+#### 2.6.2 客户端
+
+```js
+const dgram = require("dgram");
+const client = dgram.createSocket("udp4");
+client.bind(41235, "192.168.1.102");
+const buf = new Buffer("hello");
+client.send(buf, 0, buf.length, 41234, "192.168.1.100");
+client.on("message", function (msg, rinfo) {
+  console.log("received:", msg);
+});
+```
+
+### 2.7 组播
+
+- 所谓的组播，就是将网络中同一业务类型进行逻辑上的分组，从某个 socket 端口上发送的数据只能被改组中的其他主机所接收，不被组外的任何主机接收。
+- 实现组播时，并不直接把数据发送给目标地址，而是将数据发送到组播主机，操作系统将把该数据组播给组内的其他所有成员。
+- 在网络中，使用 D 类地址作为组播地址。范围是指 224.0.0.0~239.255.255.255，分为三类
+  - 局部组播地址：224.0.0.0~224.0.0.255 为路由协议和其他用途保留
+  - 预留组播地址：224.0.1.0~238.255.255.255 可用于全球范围或网络协议
+  - 管理权限组播地址：239.0.0.0~239.255.255.255 组织内部使用，不可用于 Internet
+
+把该 socket 端口对象添加到组播组中
+
+```js
+socket.addMembership(multicastAddress, [multicastInterface]);
+```
+
+- multicastAddress 必须指定，需要加入的组播组地址
+- multicastInterface 可选参数, 需要加入的组播组地址
+
+```js
+socket.dropMembership(multicastAddress, [multicastInterface]);
+socket.setMulticastTTL(ttl);
+socket.setMulticastLoopback(flag);
+```
+
+#### 2.7.1 服务器
+
+```js
+const dgram = require("dgram");
+const server = dgram.createSocket("udp4");
+server.on("listening", function () {
+  server.MulticastTTL(128);
+  server.setMulticastLoopback(true);
+  server.addMembership("230.185.192.108");
+});
+setInterval(broadcast, 1000);
+function broadcast() {
+  const buffer = Buffer.from(new Date().toLocaleString());
+  server.send(buffer, 0, buffer.length, 8080, "230.185.192.108");
+}
+```
+
+#### 2.7.2 客户端
+
+```js
+const dgram = require("dgram");
+const client = dgram.createSocket("udp4");
+client.on("listening", function () {
+  client.addMembership("230.185.192.108");
+});
+client.on("message", function (message, remote) {
+  console.log(message.toString());
+});
+client.bind(8080, "192.168.1.103");
+```
+
+## 附录
+
+## 软件
+
+- putty [https://www.putty.org/](https://www.putty.org/)
+- window 用户安装来网络分析系统[http://colasoft.com.cn](http://www.colasoft.com.cn/)
+- mac 用户装 wireshark [https://www.wireshark.org/download.html](https://www.wireshark.org/download.html)
+
+## telnet
+
+```
+FF FB 1F FF FB 20 FF FB 18 FF FB 27 FF FD 01 FF FB 03 FF FD 03
+FF FB 1F window size
+FF FB 20 terminal speed
+FF FB 18 terminal type
+FF FB 27 Telnet Environment Option
+FF FD 01 echo
+FF FB 03 suppress go ahead
+FF FD 03 suppress go ahead
+如果不需要這些, 改用RAW模式就可以了
+```
+
+## 打开 telnet 功能
+
+[打开 telnet 功能](https://jingyan.baidu.com/article/6181c3e0b7cc4a152ef153b4.html)
