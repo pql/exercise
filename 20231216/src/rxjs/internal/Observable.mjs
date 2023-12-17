@@ -1,4 +1,5 @@
 import { Subscriber } from './Subscriber.mjs'
+import { pipeFromArray } from './utils/pipe.mjs';
 
 export class Observable {
     constructor(subscribe) {
@@ -12,7 +13,7 @@ export class Observable {
         subscriber.add(teardown)
         return subscriber;
     }
-    pipe(operation) {
-        return operation(this);
+    pipe(...operations) {
+        return pipeFromArray(operations)(this);
     }
 }

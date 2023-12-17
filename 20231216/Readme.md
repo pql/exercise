@@ -534,3 +534,468 @@ export function filter(predicate) {
   };
 }
 ```
+
+## 6.pipe
+
+- Observable 对象有一个名为 pipe 的方法，允许你将多个操作符链接在一起。它可以让你在单个表达式中执行复杂的数据处理流程。
+
+### 6.1 src\index.js
+
+src\index.js
+
+```js
+import { of, map, filter } from "./rxjs";
+const subscriber = of(1, 2, 3).pipe(
+  map((val) => val * 2),
+  filter((val) => val > 3),
+  map((data) => data + 1)
+);
+subscriber.subscribe(console.log);
+```
+
+### 6.2 Observable.js
+
+src\rxjs\internal\Observable.js
+
+```js
+import { Subscriber } from './Subscriber';
++import { pipeFromArray } from './util/pipe';
+export class Observable {
+  constructor(subscribe) {
+    if(subscribe) {
+      this._subscribe = subscribe;
+    }
+  }
+  subscribe(observerOrNext) {
+    const subscriber = new Subscriber(observerOrNext);
+    const teardown = this._subscribe(subscriber);
+    subscriber.add(teardown);
+    return subscriber;
+  }
++ pipe(...operations) {
++   return pipeFromArray(operations)(this);¸
++ }
+}
+```
+
+### 6.3 pipe.js
+
+src\rxjs\internal\util\pipe.js
+
+```js
+import { identity } from "./identity";
+export function pipeFromArray(fns) {
+  if (fns.length === 0) {
+    return identity;
+  }
+  if (fns.length === 1) {
+    return fns[0];
+  }
+  return function piped(input) {
+    return fns.reduce((prev, fn) => fn(prev), input);
+  };
+}
+```
+
+### 6.4 identity.js
+
+src\rxjs\internal\util\identity.js
+
+```js
+export function identity(x) {
+  return x;
+}
+```
+
+## 7.asyncScheduler
+
+- 使用 setTimeout(task, duration) 调度任务
+- async 调度器通过将任务放在 JavaScript 事件循环队列中异步地调度任务。它最适用于延迟任务的执行或定期执行任务
+
+### 7.1 src\index.js
+
+src\index.js
+
+```js
+import { asyncScheduler } from "./rxjs";
+function task(state) {
+  console.log("state: ", state);
+  if (state < 5) {
+    this.schedule(state + 1, 1000);
+  }
+}
+asyncScheduler.schedule(task, 1000, 0);
+```
+
+### 7.2 rxjs\index.js
+
+src\rxjs\index.js
+
+```js
+export { Observable } from './internal/Observable';
+export { of } from './internal/observable/of';
+export { from } from './internal/observable/from';
+export { fromEvent } from './internal/observable/fromEvent';
+export { filter } from './internal/operators/filter';
+export { map } from './internal/operators/map';
++export { asyncScheduler } from './internal/scheduler/async';
+```
+
+### 7.3 Scheduler.js
+
+src\rxjs\internal\Scheduler.js
+
+```js
+export class Scheduler {
+  constructor(schedulerActionCtor) {
+    this.schedulerActionCtor = schedulerActionCtor;
+  }
+  schedule(work, delay = 0, state) {
+    return new this.schedulerActionCtor(work).schedule(state, delay);
+  }
+}
+```
+
+### 7.4 AsyncAction.js
+
+src\rxjs\internal\scheduler\AsyncAction.js
+
+```js
+export class AsyncAction {
+  pending = false;
+  constructor(work) {
+    this.work = work;
+  }
+  schedule(state, delay = 0) {
+    this.state = state;
+    this.delay = delay;
+    if (this.id != null) {
+      this.id = this.recycleAsyncId(this.id);
+    }
+    this.pending = true;
+    this.id = this.requestAsyncId(delay);
+    return this;
+  }
+  requestAsyncId(delay = 0) {
+    return setInterval(this.execute.bind(this), delay);
+  }
+  execute() {
+    this.pending = false;
+    this.work(this.state);
+    if (this.pending === false && this.id !== null) {
+      this.id = this.recycleAsyncId(this.id);
+    }
+  }
+  recycleAsyncId(id) {
+    if (id !== null) {
+      clearInterval(id);
+    }
+    return null;
+  }
+}
+```
+
+### 7.5 async.js
+
+src\rxjs\internal\scheduler\async.js
+
+```js
+import { AsyncAction } from "./AsyncAction";
+import { Scheduler } from "../Scheduler";
+export const asyncScheduler = new Scheduler(AsyncAction);
+```
+
+## 8.timer
+
+- `timer` 函数是一个工厂函数，可以创建一个发出数字的 `Observable`,每个数字增加 `1`。它接受两个参数；起始值和间隔时间
+
+### 8.1 src\index.js
+
+src\index.js
+
+```js
+import { timer } from "./rxjs";
+timer(1000).subscribe(() => console.log("timer"));
+```
+
+### 8.2 rxjs\index.js
+
+src\rxjs\index.js
+
+```js
+export { Observable } from './internal/Observable';
+export { of } from './internal/observable/of';
+export { from } from './internal/observable/from';
+export { fromEvent } from './internal/observable/fromEvent';
+export { filter } from './internal/operators/filter';
+export { map } from './internal/operators/map';
+export { asyncScheduler } from './internal/scheduler/async';
++export { timer } from './internal/observable/timer';
+```
+
+### 8.3 timer.js
+
+src\rxjs\internal\observable\timer.js
+
+```js
+import { Observable } from "../Observable";
+import { asyncScheduler } from "../scheduler/async";
+export function timer(dueTime = 0, scheduler = asyncScheduler) {
+  return new Observable((subscriber) => {
+    let n = 0;
+    return scheduler.schedule(function () {
+      subscriber.next(n++);
+    }, dueTime);
+  });
+}
+```
+
+## 9.interval
+
+- `interval` 函数是一个工厂函数，可以创建一个发出数字的 `Observable`,每个数字增加 1.它接受一个间隔时间参数，表示每次发送之间的时间间隔
+- `interval` 函数会一直发送数字，直到你取消订阅。你可以使用`take`操作符限制发送的数字数量
+
+### 9.1 src\index.js
+
+src\index.js
+
+```js
+import { interval } from "./rxjs";
+interval(1000).subscribe((v) => console.log(v));
+```
+
+### 9.2 src\index.js
+
+src\rxjs\index.js
+
+```js
+export { Observable } from './internal/Observable';
+export { of } from './internal/observable/of';
+export { from } from './internal/observable/from';
+export { fromEvent } from './internal/observable/fromEvent';
+export { filter } from './internal/operators/filter';
+export { map } from './internal/operators/map';
+export { asyncScheduler } from './internal/scheduler/async';
+export { timer } from './internal/observable/timer';
++export { interval } from './internal/observable/interval';
+```
+
+### 9.3 interval.js
+
+src\rxjs\internal\observable\interval.js
+
+```js
+import { asyncScheduler } from "../scheduler/async";
+import { timer } from "./timer";
+export function interval(period = 0, scheduler = asyncScheduler) {
+  return timer(period, period, scheduler);
+}
+```
+
+### 9.4 timer.js
+
+src\rxjs\internal\observable\timer.js
+
+```js
+import { Observable } from '../Observable';
+import { asyncScheduler } from '../scheduler/async';
++export function timer(dueTime = 0, interval, scheduler = asyncScheduler) {
+  return new Observable(subscriber => {
+    let n = 0;
+    return scheduler.schedule(function() {
+      subscriber.next(n++);
++     if(interval >= 0) {
++       this.schedule(undefined, interval);
++     } else {
++       subscriber.complete();
++     }
+    }, dueTime);
+  });
+}
+```
+
+## 10.take
+
+- `take` 操作符会从 `Observable` 中取出前`N`个值，然后完成。它是一个过滤操作符，可以用来限制 Observable 发送的值的数量
+- `take` 操作符会在 `Observable` 发送完`N`个值之后立即完成，因此你不需要使用 `unsubscribe` 方法取消订阅
+
+### 10.1 src\index.js
+
+src\index.js
+
+```js
+import { interval, take } from "./rxjs";
+interval(500).pipe(take(3)).subscribe(console.log);
+// 0
+// 1
+// 2
+```
+
+### 10.2 rxjs\index.js
+
+src\rxjs\index.js
+
+```js
+export { Observable } from './internal/Observable';
+export { of } from './internal/observable/of';
+export { from } from './internal/observable/from';
+export { fromEvent } from './internal/observable/fromEvent';
+export { filter } from './internal/operators/filter';
+export { map } from './internal/operators/map';
+export { asyncScheduler } from './internal/scheduler/async';
+export { timer } from './internal/observable/timer';
+export { interval } from './internal/observable/interval';
++export { take } from './internal/operators/take';
+```
+
+### 10.3 take.js
+
+src\rxjs\internal\operators\take.js
+
+```js
+import { Observable } from "../Observable";
+export function take(count) {
+  return (source) => {
+    let seen = 0;
+    const observable = new Observable(function (subscriber) {
+      return source.subscribe({
+        ...subscriber,
+        next: (value) => {
+          seen++;
+          if (seen <= count) {
+            subscriber.next(value);
+            if (seen >= count) {
+              subscriber.complete();
+            }
+          }
+        },
+      });
+    });
+    return observable;
+  };
+}
+```
+
+## 11.Subject
+
+- Subject 是 Observable 的一种特殊类型，它允许将值多播给许多观察者。Subject 就像 EventEmitter
+- 每个 Subject 都是一个 Observable 和 Observer。你可以订阅 Subject, 并且还可以调用 next 来提供值，以及 error 和 complete
+- 简单来说，Subject 是一种特殊的 Observable,它既可以订阅数据流，也可以向数据中提交数据。Subject 还具有 Observer 的特性，即可以调用 next、error 和 complete 方法
+
+### 11.1 Cold Observable 和 Hot Observable
+
+- `Hot Observable` 和 `Cold Observable` 是指两种不同类型的 `Observable`, 它们在执行的行为有所不同
+- `Cold Observable`是一种会在每个观察者订阅时重新开始发出数据的 `Observable`。每个观察者都有自己的数据流，即使多个观察者订阅同一个 `Cold Observable`,它们也会收到完全独立的数据流。例如，当你订阅一个`Cold Observable`时，它会从头开始发出数据，不会丢失任何信息
+- `Hot Observable` 是一种在发出数据时无论是否有观察者订阅都会继续发出数据的 `Observable`。每个观察者都会收到相同的数据流，并且会收到所有之前发出的数据。例如，当你订阅一个 `Hot Observable`时，它可能会丢失一些信息，因为它在你订阅之前就已经开始发出数据了
+- 总的来说，`Cold Observable` 适用于那些需要每个观察者都收到完整数据流的场景，而 `Hot Observable` 适用于那些数据流是连续不断的，不需要每个观察者都收到完整数据流的场景
+
+#### 11.1.1 Cold Observable
+
+- 推送值的生产者 `producer` 来自 `Observable`内部。将会推送什么样的值在 `Observable` 创建时被定义下来，不会改变
+- `producer` 与 `observer` 是一对一的关系，即是 unicast(单播)的
+- 当有 `observer` 订阅时，`producer`会把预先定义好的若干值依次推送给每个 `observer`
+- `Cold Observable`每次订阅后就只会有一个观察者，下一个观察者要进行订阅时是一次新的数据流程，因此`Cold Observable`与`observer`是一对一关系
+- 数据流的 `operators` 基本上都是属于 `Cold Observable`
+
+```js
+import { Observable } from "./rxjs";
+const source = new Observable((subscriber) => {
+  subscriber.next(1);
+  subscriber.next(2);
+  subscriber.next(3);
+  subscriber.complete();
+});
+
+source.subscribe((data) => console.log(`subscriberA: ${data}`));
+// 1,2,3
+source.subscribe((data) => console.log(`subscriberB: ${data}`));
+// 1,2,3
+```
+
+#### 11.1.2 Hot Observable
+
+- 推送值的`producer`来自`observable`外部，何时推送以及推送什么样的值在创建时是未知的。`producer`与`observer`是一对多的关系，即 multicast（多播）的
+- 每当有`observer`订阅时，会将`observer`注册到观察者列表中
+- 当外部的`producer`被触发或执行时，会将值同时推送给所有的`observer`
+
+![](./HotObservable_1671960568953.png)
+
+```js
+import { Subject } from "./rxjs";
+const source = new Subject();
+source.subscribe({
+  next: (data) => console.log(`Subject 第一次订阅：${data}`),
+});
+source.next(1);
+source.next(2);
+source.subscribe({
+  next: (data) => console.log(`Subject 第二次订阅：${data}`),
+});
+source.next(3);
+source.next(4);
+```
+
+### 11.1 src\index.js
+
+src\index.js
+
+```js
+import { Subject } from "./rxjs";
+const subject = new Subject();
+
+subject.subscribe({ next: (data) => console.log(`observerA: `, data) });
+subject.subscribe({ next: (data) => console.log(`observerB: `, data) });
+
+subject.next(1);
+subject.next(2);
+
+// observerA：1
+// observerB：1
+// observerA：2
+// observerB：2
+```
+
+### 11.2 rxjs\index.js
+
+src\rxjs\index.js
+
+```js
+export { Observable } from './internal/Observable';
+export { of } from './internal/observable/of';
+export { from } from './internal/observable/from';
+export { fromEvent } from './internal/observable/fromEvent';
+export { filter } from './internal/operators/filter';
+export { map } from './internal/operators/map';
+export { asyncScheduler } from './internal/scheduler/async';
+export { timer } from './internal/observable/timer';
+export { interval } from './internal/observable/interval';
+export { take } from './internal/operators/take';
++export { Subject } from './internal/Subject';
+```
+
+### 11.3 Subject.js
+
+src\rxjs\internal\Subject.js
+
+```js
+import { Subscriber } from "./Subscriber";
+export class Subject extends Subscriber {
+  observers = [];
+  subscribe(subscriber) {
+    const { observers } = this;
+    observers.push(subscriber);
+  }
+  next(value) {
+    const copy = this.observers.slice();
+    for (const observer of copy) {
+      observer.next(value);
+    }
+  }
+  complete() {
+    const { observers } = this;
+    while (observers.length) {
+      observers.shift().complete?.();
+    }
+  }
+}
+```

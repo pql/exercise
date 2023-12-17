@@ -4,3 +4,8 @@ export { from } from './internal/observable/from.mjs';
 export { fromEvent } from './internal/observable/fromEvent.mjs'
 export { filter } from './internal/operators/filter.mjs';
 export { map } from './internal/operators/map.mjs'
+export { asyncScheduler } from './internal/scheduler/async.mjs';
+export { timer } from './internal/observable/timer.mjs';
+export { interval } from './internal/observable/interval.mjs';
+export { take } from './internal/operators/take.mjs';
+export { Subject } from './internal/Subject.mjs';
