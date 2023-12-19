@@ -453,3 +453,511 @@ source$.pipe(throwIfEmpty()).subscribe({
   error: (error) => console.error(error),
 });
 ```
+
+## 2.缓存
+
+### 2.2 bufferTime.js
+
+src\bufferTime.js
+
+```js
+import { interval, bufferTime } from "rxjs";
+// interval 函数每隔一段时间(这里是 1000 毫秒)发出一个数字，表示过了多长时间。
+// bufferTime 操作符会收集来自源 Observable (这里是 interval 发出的 Observable) 的值，
+// 每隔一段时间 (这里是 2000 毫秒) 就把这些值当做数组发出。
+const messageBox = document.getElementById("messageBox");
+const source$ = interval(1000);
+source$.pipe(bufferTime(2000)).subscribe((messages) => {
+  messageBox.innerHTML += messages
+    .map((item) => `<li>Message ${item}</li>`)
+    .join("\n");
+});
+```
+
+### 2.1 bufferCount.js
+
+src\bufferCount.js
+
+```js
+import { interval, bufferCount } from "rxjs";
+const messageBox = document.getElementById("messageBox");
+const source$ = interval(1000);
+// bufferCount 操作符会收集来自源 Observable (这里是 interval 发出 Observable) 的值，
+// 当收集到了足够多 (这里是 3个)的值时，就把这些值当做数组发出。
+
+source$.pipe(bufferCount(3)).subscribe((messages) => {
+  messageBox.innerHTML += messages
+    .map((item) => `<li>Message ${item}</li>`)
+    .join("\n");
+});
+```
+
+## 3.拖拽
+
+### 3.1 public\index.html
+
+public\index.html
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <title>React App</title>
+    <style>
+      #draggable {
+        width: 100px;
+        height: 100px;
+        background-color: red;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <ul id="messageBox"></ul>
+    <div id="draggable"></div>
+  </body>
+</html>
+```
+
+### 3.2 src\drag.js
+
+```js
+import { fromEvent } from "rxjs";
+import { withLatestFrom, takeUntil, switchMap } from "rxjs/operators";
+function startDragging(element) {
+  const mouseDown = fromEvent(element, "mousedown");
+  const mouseUp = fromEvent(document, "mouseup");
+  const mouseMove = fromEvent(document, "mousemove");
+  mouseDown
+    .pipe(
+      switchMap(() => mouseMove.pipe(takeUntil(mouseUp))),
+      withLatestFrom(mouseDown, (moveEvent, downEvent) => {
+        return {
+          left: moveEvent.clientX - downEvent.offsetX,
+          top: moveEvent.clientY - downEvent.offsetY,
+        };
+      })
+    )
+    .subscribe(({ left, top }) => {
+      element.style.left = left + "px";
+      element.style.top = top + "px";
+    });
+}
+
+const draggable = document.getElementById("draggable");
+startDragging(draggable);
+```
+
+## 4.并发请求
+
+### 4.1 src\multiRequest.js
+
+src\multiRequest.js
+
+```js
+import { mergeMap, from } from "rxjs";
+/**
+ * 实现一个批量并发请求函数 request(urls, concurrent),要求如下：
+ * 1. 要求最大并发数 concurrent
+ * 2. 每当有一个请求返回，就进行新的请求
+ * 3. 所有请求完成后，结果按照 urls 里面的顺序依次打出
+ */
+function fetchData(url) {
+  return new Promise((resolve) => setTimeout(() => resolve(url), 3000));
+}
+const urls = ["/api/user/1", "/api/user/2", "/api/user/3"];
+const start = Date.now();
+function request(urls, concurrent) {
+  from(urls)
+    .pipe(mergeMap(fetchData, concurrent))
+    .subscribe((val) => {
+      console.log(`耗时：${parentInt((Date.now() - start) / 1000)}s`);
+      console.log(val);
+    });
+}
+request(urls, 2);
+```
+
+## 5.竞态
+
+- 前端请求后端接口时的竞态问题是指，当前端同时发起多个请求时，可能会导致意料之外的结果
+- 例如，假设你正在使用 JavaScript 的 fetch 函数发起多个请求，如果在前一个请求完成之前就发起了新的请求，则会发生竞态问题。这是因为，在前一个请求完成之前，后端接口可能会收到并处理多个请求，导致数据更新的顺序不确定。
+
+### 5.1 src\race.js
+
+```js
+import { Subject, switchMap } from "rxjs";
+function fetchData(id) {
+  return new Promise((resolve) => setTimeout(() => resolve(id), 1000 * id));
+}
+const search = new Subject();
+search.pipe(switchMap(fetchData)).subscribe(console.log);
+search.next(3);
+setTimeout(() => {
+  search.next(1);
+}, 1000);
+```
+
+## 6.suggests
+
+### 6.1 src\suggests.js
+
+```js
+import { fromEvent, of, timer } from "rxjs";
+import { debounce, debounceTime, switchMap } from "rxjs/operators";
+
+const inputElement = document.querySelector("#keyword");
+const wordsElement = document.querySelector("#words");
+
+// 监听输入框的输入事件
+const input$ = fromEvent(inputElement, "input");
+input$.subscribe((event) => {
+  console.log(event);
+});
+
+// 对输入事件进行处理，延迟 100 毫秒后发送请求
+const search$ = input$.pipe(
+  debounceTime(100),
+  // debounce 操作符，它可以根据一个指定的函数来判断是否发出事件
+  // debounce 操作符的好处在于，它可以根据我们提供的函数动态地决定是否发出事件
+  debounce((event) =>
+    event.target.value.length > 3 ? of(event) : timer(3000)
+  ), // 延迟 100 毫秒
+  switchMap((event) =>
+    fetch(`http://localhost:8080/api/search?q=${event.target.value}`)
+  )
+);
+
+// 处理请求结果，渲染到页面
+search$.subscribe((response) => {
+  response.json().then((data) => {
+    // 将相应结果渲染到页面
+    wordsElement.innerHTML = data.map((item) => `<li>${item}</li>`).join("");
+  });
+});
+```
+
+## 7.fetch 封装
+
+### 7.1 实现 GET 请求
+
+#### 7.1.1 src\index.js
+
+src\index.js
+
+```js
+import { http } from "./fetch/http";
+http
+  .request({
+    url: "http://localhost:8080/api/user/1",
+    method: "GET",
+  })
+  .then((response) => {
+    console.log(response);
+  });
+```
+
+#### 7.1.2 http.js
+
+src\fetch\http.js
+
+```js
+import { lastValueFrom, share } from "rxjs";
+import { fromFetch } from "rxjs/fetch";
+export class Http {
+  request(options) {
+    return lastValueFrom(fromFetch(options.url, options).pipe(share()));
+  }
+}
+export const http = new Http();
+```
+
+### 7.2 实现 POST 请求
+
+#### 7.2.1 src\index.js
+
+src\index.js
+
+```js
+import { http } from "./fetch/http";
+http
+  .post("http://localhost:8080/api/user", { name: "zhangsan" })
+  .then((res) => res.json())
+  .then((response) => {
+    console.log(response);
+  });
+```
+
+#### 7.2.2 http.js
+
+src\fetch\http.js
+
+```js
+import { lastValueFrom, share } from "rxjs";
+import { fromFetch } from "rxjs/fetch";
+import { getUrlFromOptions, getInitFromOptions } from "./utils";
+export class Http {
+  request(options) {
+    const url = getUrlFromOptions(options);
+    const init = getInitFromOptions(options);
+    return lastValueFrom(fromFetch(url, init).pipe(share()));
+  }
++ delete(url) {
++   return this.request({method: 'DELETE', url});
++ }
++ put(url, data) {
++   return this.request({method: 'PUT', url, data, headers: { "Content-Type": "application/json" }});
++ }
++ post(url, data) {
++   return this.request({{method: 'POST', url, data, headers: { "Content-Type": "application/json" }}});
++ }
+}
+export const http = new Http();
+```
+
+#### 7.2.3 utils.js
+
+src\fetch\utils.js
+
+```js
+export function getUrlFromOptions(options) {
+  let { url, params = {}, method = "GET" } = options;
+  let queryString = "";
+  params = Object.keys(params).reduce((filteredParams, key) => {
+    if (params[key] !== "") {
+      filteredParams[key] = params[key];
+    }
+    return filteredParams;
+  }, {});
+  queryString = Object.keys(params)
+    .map((key) => {
+      return encodeURIComponent(key) + "=" + encodeURIComponent(params[key]);
+    })
+    .join("&");
+  if (method === "GET" || method === "DELETE") {
+    url += "?" + queryString;
+  }
+  return url;
+}
+
+export function getInitFromOptions(options) {
+  let method = options.method || "GET";
+  let headers = options.headers || {};
+  let isJSONBody = headers["Content-Type"] === "application/json";
+  let body = options.data;
+  if (body && Object.keys(body).length > 0) {
+    if (isJSONBody) {
+      body = JSON.stringify(body);
+    } else {
+      body = new URLSearchParams(body);
+    }
+  }
+  let credentials = options.credentials || "omit"; // omit, same-origin, include
+  return {
+    method,
+    headers,
+    body,
+    credentials,
+  };
+}
+```
+
+### 7.3 解析响应体
+
+#### 7.3.1 src\index.js
+
+src\index.js
+
+```js
+import { http } from "./fetch/http";
+http
+  .post("http://localhost:8080/api/user", { name: "zhangsan" })
+  .then((response) => {
+    console.log(response.data);
+  });
+```
+
+#### 7.3.2 src\fetch\http.js
+
+src\fetch\http.js
+
+```js
++import { lastValueFrom, share, mergeMap } from 'rxjs';
+import { fromFetch } from 'rxjs/fetch';
+import { getUrlFromOptions, getInitFromOptions } from './utils';
+export class Http {
+  request(options) {
+    const url = getUrlFromOptions(options);
+    const init = getInitFromOptions(options);
+    return lastValueFrom(
+      fromFetch(url, init)
+      .pipe(
++       mergeMap(async response => {
++         if(response.ok) {
++           return { data: await response.json(), status: response.status };
++         } else {
++           return Promise.reject({data: await response.json(), status: response.status });
++         }
++       }),
+        share()
+      )
+    )
+  }
+  post(url, data) {
+    return this.request({ method: 'POST', url, data, headers: { 'Content-Type': 'application/json'} });
+  }
+  delete(url) {
+    return this.request({ method: 'DELETE', url});
+  }
+  put(url, data) {
+    return this.request({ method: 'PUT', url, data, headers: { 'Content-Type': "application/json" } });
+  }
+  get(url, params) {
+    return this.request({ method: 'GET', url, params });
+  }
+}
+export const http = new Http();
+```
+
+### 7.4 错误处理
+
+#### 7.4.1 src\index.js
+
+src\index.js
+
+```js
+import { http } from './fetch/http';
++http.delete('http://localhost:8080/api/user/1', {name: 'zhangsan'})
+  .then(response => {
+    console.log(response.data)
++ }, error => console.error(error))
+```
+
+#### 7.4.2 http.js
+
+src\fetch\http.js
+
+```js
+import { lastValueFrom, share, mergeMap, filter, merge } from 'rxjs';
+import { fromFetch } from 'rxjs/fetch';
+import { getUrlFromOptions, getInitFromOptions } from './utils';
+export class Http {
+  request(options) {
+    const url = getUrlFromOptions(options);
+    const init = getInitFromOptions(options);
++   const fetchStream = fromFetch(url, init).pipe(share())
++   const successStream = fetchStream.pipe(
++     filter(response => response.ok),
++     mergeMap(async response => {
++       return { data: await response.json(), status: response.status };
++     }),
++   );
++   const failureStream = fetchStream.pipe(
++     filter(response => !response.ok),
++     mergeMap(async response => {
++       return Promise.reject({error: await response.json(), status: response.status })
++     }),
++   );
++   const mergedStream = merge(successStream, failureStream);
++   return lastValueFrom(mergedStream);
+  }
+  delete(url) {
+    return this.request({ method: 'DELETE', url })
+  }
+  put(url, data) {
+    return this.request({ method: 'PUT', url, data, headers: { 'Content-Type': 'application/json' }});
+  }
+  post(url, data) {
+    return this.request({ method: "POST", url, data, headers: { 'Content-Type': 'application/json' }});
+  }
+}
+export const http = new Http();
+```
+
+### 7.5 取消任务
+
+#### 7.5.1 src\index.js
+
+src\index.js
+
+```js
+import { http } from "./fetch/http";
+http.delete("http://localhost:8080/api/user/1").then(
+  (response) => {
+    console.log(response.data);
+  },
+  (error) => console.error(error)
+);
+```
+
+#### 7.5.2 http.js
+
+src\fetch\http.js
+
+```js
++import { lastValueFrom, share, mergeMap, filter, merge, catchError, takeUntil, throwIfEmpty, Subject } from 'rxjs';
+import { fromFetch } from 'rxjs/fetch';
+import { getUrlFromOptions, getInitFromOptions } from './utils';
+export class Http {
++ cancelRequests = new Subject();
++ cancel(requestId) {
++   this.cancelRequest.next(requestId);
++ }
+  request(options) {
+    const url = getUrlFromOptions(options);
+    const init = getInitFromOptions(options);
+    const fetchStream = fromFetch(url, init).pipe(share());
+    const successStream = fetchStream.pipe(
+      filter(response => response.ok),
+      mergeMap(async response => {
+        return { data: await response.json(), status: response.status };
+      }),
+    );
+    const failureStream = fetchStream.pipe(
+      filter(response => !response.ok),
+      mergeMap(async response => {
+        return Promise.reject({ error: await response.json(), status: response.status })
+      }),
+    );
++   const mergedStream = merge(successStream, failureStream).pipe(
++     catchError(error => throwError(() => ({...error, url}))),
++     takeUntil(
++       this.cancelRequests.pipe(
++         filter(requestId => options.requestId === requestId)
++       )
++     )
++     .throwIfEmpty(() => ({
++       type: 'cancel',
++       cancelled: true,
++       data: null,
++       status: -1,
++       statusText: '请求被取消',
++       config: options
++     }));
++   );
++   return lastValueFrom(mergedStream);
+  }
+  delete(url) {
+    return this.request({ method: 'DELETE', url });
+  }
+  put(url, data) {
+    return this.request({ method: 'PUT', url, data, headers: { 'Content-Type': 'application/json' }});
+  }
+  post(url, data) {
+    return this.request({ method: "POST", url, data, headers: { 'Content-Type': 'application/json' }});
+  }
+  get(url, params) {
+    return this.request({ method: "GET", url, params });
+  }
+}
+export const http = new Http();
+```
